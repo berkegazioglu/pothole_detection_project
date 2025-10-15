@@ -1,0 +1,8 @@
+# Veri setinin bulunduğu ana klasörün yolu (proje ana klasörüne göre)
+path: ./dataset
+train: images/train  # train resimlerinin bulunduğu klasör
+val: images/valid    # validation resimlerinin bulunduğu klasör
+
+# Sınıf sayısı ve isimleri
+nc: 1
+names: ['pothole']
