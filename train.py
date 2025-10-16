@@ -1,41 +1,42 @@
+# Gerekli kütüphaneleri dahil ediyoruz.
 from ultralytics import YOLO
 import torch
 
-
-def main():
-    # GPU'nun kullanılabilirliğini kontrol etmeye devam ediyoruz.
+def run_training(model_name='yolov8s.pt', data_config='data.yaml', epochs=100, batch_size=4, project_dir='outputs/training_runs', experiment_name='training_run'):
+    """
+    YOLO modelini eğitmek için ana fonksiyon.
+    Tüm ayarlar, daha esnek bir yapı için parametre olarak dışarıdan alınır.
+    """
+    # GPU'nun (CUDA) kullanılabilirliğini kontrol eder. Varsa GPU, yoksa CPU kullanır.
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Eğitim için kullanılacak cihaz: {device}")
 
-    # --- DEĞİŞİKLİK 1: ÖĞRENİLMİŞ MODELİ YÜKLEME ---
-    # Sıfırdan başlamak yerine, bir önceki eğitimin en iyi sonucunu yüklüyoruz.
-    # Bu sayede model, kaldığı yerden daha akıllı bir şekilde öğrenmeye devam eder.
-    model_path = 'pothole_yolov8s_rtx30502/weights/best.pt'
-    model = YOLO(model_path)
-    print(f"'{model_path}' modelinden eğitime devam ediliyor...")
+    # Belirtilen model adıyla (örn: 'yolov8s.pt' veya devam edilecek bir modelin yolu) YOLO modelini yüklüyoruz.
+    model = YOLO(model_name)
+    print(f"'{model_name}' modeli ile eğitime başlanıyor...")
+    print(f"Kullanılan veri seti yapılandırması: '{data_config}'")
 
-    # Modeli kendi veri setimizle eğitmeye devam ediyoruz
-    print("Model eğitimi başlıyor...")
+    # Modeli, dışarıdan gelen parametrelerle eğitmeye başlıyoruz.
     results = model.train(
-        data='data.yaml',
-
-        # Pro İpucu: Devam eğitimlerinde epoch sayısını daha düşük tutmak iyi bir fikirdir.
-        # Model zaten temel bilgileri öğrendiği için 50 yerine 25-30 tur daha yeterli olabilir.
-        epochs=25,
-
+        data=data_config,
+        epochs=epochs,
         imgsz=640,
-        batch=4,  # Senin RTX 3050'n için güvenli batch boyutu
+        batch=batch_size,
         device=device,
-
-        # --- DEĞİŞİKLİK 2: KAYIT YERİNİ AYARLAMA ---
-        # 'project' parametresi ana kayıt klasörünü belirler. '.' mevcut klasör demektir.
-        # 'name' ise bu klasör içinde oluşacak alt klasörün adıdır.
-        project='.',  # Sonuçları doğrudan ana proje klasörüne kaydet
-        name='training_results_v2'  # Yeni eğitimin sonuçları bu klasöre kaydedilecek
+        project=project_dir, # Sonuçların kaydedileceği ana klasör
+        name=experiment_name  # Bu eğitim denemesine özel alt klasör adı
     )
+
     print("Eğitim başarıyla tamamlandı!")
     print(f"Model ve sonuçlar şu klasöre kaydedildi: {results.save_dir}")
 
-
+# Bu blok, 'python train.py' komutuyla script'in doğrudan çalıştırılmasına
+# hala izin verir. Hızlı testler için kullanışlıdır.
 if __name__ == '__main__':
-    main()
+    print("Bu script doğrudan çalıştırıldı. Varsayılan ayarlarla bir test eğitimi başlatılıyor...")
+    run_training(
+        model_name='yolov8s.pt',
+        data_config='data.yaml',
+        epochs=10, # Test için daha düşük bir epoch sayısı
+        name='direct_training_test'
+    )

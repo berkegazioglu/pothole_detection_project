@@ -1,131 +1,142 @@
-
 # YOLOv8 ile Gerçek Zamanlı Çukur Tespiti Projesi
 
 Bu proje, yol yüzeylerindeki çukurları (pothole) resimler ve videolar üzerinden gerçek zamanlı olarak tespit etmek için geliştirilmiş bir bilgisayarla görü (Computer Vision) uygulamasıdır. Proje, son teknoloji nesne tespiti algoritmalarından biri olan **YOLOv8** modelini temel almaktadır.
 
-*(Not: Bu alana kendi oluşturduğunuz bir proje demosunu veya ekran görüntüsünü ekleyebilirsiniz.)*
 
 ## 📝 Proje Açıklaması
 
-Yol altyapısının bakımı ve güvenliği, şehir yönetimi ve otonom sürüş teknolojileri için kritik bir öneme sahiptir. Bu proje, araç kameraları veya drone'lar tarafından çekilen görüntülerdeki yol kusurlarını otomatik olarak tespit ederek bakım süreçlerini hızlandırmayı ve sürüş güvenliğini artırmayı hedefler. Özel olarak eğitilmiş bir YOLOv8 modeli kullanarak, çukurların konumları yüksek doğruluk ve hızla belirlenir.
+Yol altyapısının bakımı ve güvenliği, şehir yönetimi ve otonom sürüş teknolojileri için kritik bir öneme sahiptir. Bu proje, araç kameraları veya drone'lar tarafından çekilen görüntülerdeki yol kusurlarını otomatik olarak tespit ederek bakım süreçlerini hızlandırmayı ve sürüş güvenliğini artırmayı hedefler. Kaggle ve Roboflow gibi kaynaklardan toplanan çeşitli veri setleriyle özel olarak eğitilmiş bir YOLOv8 modeli kullanarak, çukurların konumları yüksek doğruluk ve hızla belirlenir.
 
 ## ✨ Temel Özellikler
 
-  - **Gerçek Zamanlı Tespit:** Videolar üzerinde saniyede yüksek kare hızı (FPS) ile akıcı bir şekilde çukur tespiti yapabilir.
-  - **Yüksek Doğruluk:** Özel bir veri seti ile eğitilmiş model, farklı ışık ve yol koşullarında bile başarılı sonuçlar vermektedir.
-  - **Esnek Kullanım:** Hem statik resimler (.jpg, .png) hem de video dosyaları (.mp4, .avi) üzerinde çalışabilir.
-  - **Kolayca Genişletilebilir:** Kod yapısı, yeni veri setleri ile modelin yeniden eğitilmesine veya farklı nesnelerin (çatlak, rögar kapağı vb.) tespitine olanak tanır.
+- **Gerçek Zamanlı Tespit:** Videolar üzerinde saniyede yüksek kare hızı (FPS) ile akıcı bir şekilde çukur tespiti yapabilir.
+- **Yüksek Doğruluk:** Özel bir veri seti ile eğitilmiş model, farklı ışık ve yol koşullarında bile başarılı sonuçlar vermektedir.
+- **Modüler ve Yönetilebilir Kod:** `main.py` script'i üzerinden tüm eğitim ve tahmin süreçleri komut satırı argümanları ile kontrol edilebilir.
+- **Esnek Kullanım:** Hem statik resimler (.jpg, .png) hem de video dosyaları (.mp4, .avi) üzerinde çalışabilir.
+- **Düzenli Proje Yapısı:** Veri setleri, çıktılar ve kodlar, en iyi pratiklere uygun olarak ayrı klasörlerde organize edilmiştir.
 
 ## 🛠️ Kullanılan Teknolojiler
 
-  - **Python 3.12**
-  - **YOLOv8 (Ultralytics)**: Nesne tespiti için kullanılan ana model.
-  - **PyTorch**: Modelin eğitimi ve çalıştırılması için kullanılan derin öğrenme kütüphanesi.
-  - **OpenCV-Python**: Görüntü ve video işleme, sonuçların ekranda gösterilmesi için kullanılır.
-  - **Roboflow**: (İsteğe bağlı) Veri setini etiketlemek, hazırlamak ve yönetmek için kullanılmıştır.
+- **Python 3.11 (64-bit)**: Projenin çalışması için gerekli olan ve en güncel kütüphanelerle uyumluluğu test edilmiş Python sürümü.
+- **YOLOv8 (Ultralytics)**: Nesne tespiti için kullanılan ana model.
+- **PyTorch (CUDA Destekli)**: Modelin GPU üzerinde eğitimi ve çalıştırılması için kullanılan derin öğrenme kütüphanesi.
+- **OpenCV-Python**: Görüntü ve video işleme, sonuçların ekranda gösterilmesi için kullanılır.
+- **Kaggle & Roboflow**: Veri setlerinin temin edildiği ve etiketlendiği platformlar.
 
 ## 🚀 Kurulum ve Başlangıç
 
-Bu projeyi kendi bilgisayarınızda çalıştırmak için aşağıdaki adımları izleyebilirsiniz.
+Bu projeyi kendi bilgisayarınızda çalıştırmak için aşağıdaki adımları sırasıyla izleyebilirsiniz.
 
 **1. Projeyi Klonlayın:**
+```bash
+git clone [https://github.com/kullanici-adiniz/pothole-detection-project.git](https://github.com/kullanici-adiniz/pothole-detection-project.git)
+cd pothole-detection-project
+````
+
+**2. Sanal Ortam Oluşturun (Python 3.11 ile):**
+Bu proje, `ultralytics` kütüphanesinin güncel sürümleriyle tam uyumluluk için **Python 3.11 (64-bit)** gerektirir.
 
 ```bash
-git clone https://github.com/kullanici-adiniz/pothole-detection-project.git
-cd pothole-detection-project
+# Python 3.11'i kullanarak 'venv' adında bir sanal ortam oluşturun
+py -3.11 -m venv venv
 ```
 
-**2. Sanal Ortam Oluşturun ve Aktif Edin (Önerilir):**
+**3. Sanal Ortamı Aktif Edin:**
 
 ```bash
-# Sanal ortam oluşturma
-python -m venv venv
-
-# Sanal ortamı aktif etme (Windows)
+# Windows için
 .\venv\Scripts\activate
 ```
 
-**3. Gerekli Kütüphaneleri Yükleyin:**
-Proje için gerekli tüm kütüphaneler `requirements.txt` dosyasında listelenmiştir.
+**4. Gerekli Kütüphaneleri Doğru Sırada Yükleyin:**
+Bu sıra, olası versiyon çakışmalarını önlemek için önemlidir.
 
 ```bash
-pip install -r requirements.txt
+# a) Önce pip'i güncelleyin
+python.exe -m pip install --upgrade pip
+
+# b) GPU destekli PyTorch'u kurun (En Önemli Adım)
+python.exe -m pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu121](https://download.pytorch.org/whl/cu121)
+
+# c) Geri kalan tüm kütüphaneleri requirements.txt'den kurun
+python.exe -m pip install -r requirements.txt
 ```
 
-*Not: Eğer NVIDIA ekran kartınız (GPU) varsa, PyTorch'un CUDA destekli versiyonunu kurarak eğitim ve tahmin süreçlerini onlarca kat hızlandırabilirsiniz. Bu komut bunu sizin için yapacaktır:*
+**5. Veri Setini Hazırlayın:**
 
-```bash
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-```
-
-**4. Veri Setini ve Eğitilmiş Modeli Hazırlayın:**
-
-  - **Veri Seti:** Bu proje [Kaggle Pothole Detection Dataset](https://www.kaggle.com/datasets/andrewmvd/pothole-detection) veri seti ile eğitilmiştir. `prepare_dataset.py` script'i, bu ham veri setini YOLO formatına dönüştürmek için kullanılmıştır.
-  - **Eğitilmiş Model:** Projeyi test etmek için eğitilmiş bir model (`best.pt`) gereklidir. Kendi modelinizi eğiterek bu dosyayı elde edebilirsiniz. Büyük dosya boyutları nedeniyle modeller genellikle GitHub'a yüklenmez.
+  - Projenin eğitilebilmesi için `data/processed/` klasörünün içinde `images` ve `labels` klasörleri bulunmalıdır.
+  - `data.yaml` dosyası, bu klasörlerin yolunu doğru bir şekilde göstermelidir.
 
 ## 📖 Kullanım
 
-Projenin iki ana kullanım amacı vardır: Modeli eğitmek ve eğitilmiş bir modelle tahmin yapmak.
+Tüm işlemler, projenin ana klasöründeki `main.py` script'i üzerinden komut satırı aracılığıyla yönetilir.
 
-### 1\. Modeli Eğitme (`train.py`)
+### 1\. Modeli Eğitme (`train`)
 
-Kendi veri setinizle modeli sıfırdan eğitmek veya mevcut bir modeli daha da geliştirmek (fine-tuning) için:
+Yeni bir model eğitmek veya mevcut bir eğitimi devam ettirmek için `train` komutunu kullanın.
 
-1.  Veri setinizin `data.yaml` dosyasında belirtilen formatta ve yolda olduğundan emin olun.
-2.  `train.py` dosyasını isteğe göre (epoch sayısı, batch boyutu vb.) düzenleyin.
-3.  Aşağıdaki komutu çalıştırın:
-    ```bash
-    python train.py
-    ```
-    Eğitim tamamlandığında, en iyi modeliniz (`best.pt`) ve sonuç grafikleri `runs/detect/train` gibi bir klasöre kaydedilecektir.
+**Örnek 1: YOLOv8s ile Sıfırdan 100 Epoch'luk Eğitim Başlatma**
 
-### 2\. Tahmin Yapma (`predict.py`)
+```bash
+python main.py train --model yolov8s.pt --epochs 100 --name yolov8_run_1
+```
 
-Eğittiğiniz modelle yeni bir resim veya videoda çukur tespiti yapmak için:
+*Bu komut, sonuçları `outputs/training_runs/yolov8_run_1` klasörüne kaydeder.*
 
-1.  Test etmek istediğiniz video veya resim dosyasını `input_media` klasörüne atın.
-2.  `predict.py` dosyasını açın ve `MODEL_PATH` ile `MEDIA_PATH` değişkenlerini kendi dosya yollarınıza göre güncelleyin.
-    ```python
-    # Örnek:
-    MODEL_PATH = 'training_results_v2/weights/best.pt'
-    MEDIA_PATH = 'input_media/test_video.mp4'
-    ```
-3.  Aşağıdaki komutu çalıştırın:
-    ```bash
-    python predict.py
-    ```
-    İşlem başladığında, sonuçları gösteren bir pencere açılacak ve işlenmiş video/resim `output_media` veya `runs/detect/predict` klasörüne kaydedilecektir.
+**Örnek 2: Bir Önceki Eğitimden Devam Etme (Fine-Tuning)**
+
+```bash
+python main.py train --model outputs/training_runs/yolov8_run_1/weights/best.pt --epochs 50 --name yolov8_run_2
+```
+
+*Bu komut, en iyi modelden devam eder ve sonuçları `outputs/training_runs/yolov8_run_2` klasörüne kaydeder.*
+
+### 2\. Tahmin Yapma (`predict`)
+
+Eğittiğiniz bir modelle yeni bir resim veya videoda çukur tespiti yapmak için `predict` komutunu kullanın.
+
+**Örnek:**
+
+```bash
+python main.py predict --model outputs/training_runs/yolov8_run_1/weights/best.pt --source input_media/bozuk_yollar.mp4 --name video_test_sonucu
+```
+
+*Bu komut, videoyu işler, sonuçları ekranda gösterir ve işlenmiş videoyu `outputs/predictions/video_test_sonucu` klasörüne kaydeder.*
 
 ## 📁 Proje Yapısı
 
 ```
 pothole_detection_project/
 │
-├── dataset/            # İşlenmiş, eğitime hazır veri seti
-│   ├── images/
-│   └── labels/
+├── data/
+│   ├── processed/          <-- İşlenmiş, eğitime hazır veri seti
+│   │   ├── images/
+│   │   └── labels/
+│   └── raw/                <-- Orijinal, dokunulmamış veri setleri (yedek)
 │
-├── input_media/        # Test edilecek resim ve videolar
-├── output_media/       # Tahmin sonuçlarının kaydedildiği klasör
+├── input_media/            <-- Test edilecek resim ve videolar
 │
-├── training_results_v2/ # Eğitim sonuçlarının (model ağırlıkları, grafikler) kaydedildiği klasör
-│   └── weights/
-│       └── best.pt     # En iyi eğitilmiş model
+├── outputs/                <-- Tüm eğitim ve tahmin çıktıları
+│   ├── predictions/
+│   └── training_runs/
 │
-├── data.yaml           # Veri setinin yapılandırma dosyası
-├── predict.py          # Tahmin script'i
-├── train.py            # Eğitim script'i
-├── prepare_dataset.py  # (Opsiyonel) Ham veriyi işlemek için script
-├── requirements.txt    # Gerekli Python kütüphaneleri
-└── README.md           # Bu dosya
+├── venv/                   <-- Projeye özel sanal ortam
+│
+├── .gitignore              <-- Git'in yok sayacağı dosyalar
+├── data.yaml               <-- Ana veri seti yapılandırma dosyası
+├── main.py                 <-- Projenin ana kontrol script'i
+├── predict.py              <-- Tahmin fonksiyonunu içeren modül
+├── prepare_dataset.py      <-- Ham XML verilerini işlemek için araç
+├── README.md               <-- Bu dosya
+├── requirements.txt        <-- Gerekli Python kütüphaneleri
+└── train.py                <-- Eğitim fonksiyonunu içeren modül
 ```
 
 ## 🔮 Gelecekteki Geliştirmeler
 
-  - [ ] Daha çeşitli hava koşullarında (yağmur, gece, kar) çekilmiş verilerle modelin doğruluğunu artırmak.
-  - [ ] Tespit edilen çukurların GPS verileriyle entegre edilerek bir harita üzerinde işaretlenmesi.
-  - [ ] Flask veya FastAPI kullanarak modelin bir web arayüzü üzerinden hizmet vermesi.
-  - [ ] Modelin mobil cihazlarda çalışabilmesi için optimize edilmesi (örn: TensorFlow Lite, ONNX).
+  - [ ] **Sürekli Öğrenme Döngüsü:** Modelin hiç görmediği videolardaki hatalı veya eksik tahminlerini etiketleyerek veri setini sürekli zenginleştirmek ve modeli periyodik olarak yeniden eğitmek.
+  - [ ] **GPS Entegrasyonu:** Tespit edilen çukurların GPS verileriyle eşleştirilerek bir harita üzerinde görselleştirilmesi.
+  - [ ] **Web Arayüzü:** Flask veya FastAPI kullanarak, kullanıcıların video yükleyip sonuçları bir web sitesi üzerinden görebileceği bir servis oluşturmak.
 
 ## 📄 Lisans
 

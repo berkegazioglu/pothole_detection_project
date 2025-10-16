@@ -1,0 +1,21 @@
+torch
+# ===================================================================
+# Proje için Gerekli Ana Kütüphaneler
+# ===================================================================
+
+# YOLOv8 ve YOLOv11 modellerini eğitmek ve kullanmak için temel kütüphane.
+# PyTorch, NumPy gibi birçok temel bağımlılığı otomatik olarak kurar.
+ultralytics
+
+# Görüntü ve video işleme, dosyaları okuma, yazma ve ekranda gösterme işlemleri için kullanılır.
+# Özellikle predict.py script'i için gereklidir.
+opencv-python
+
+# ===================================================================
+# Not: PyTorch Kurulumu
+# ===================================================================
+# Bu dosya, PyTorch'un standart (genellikle CPU) versiyonunu kurabilir.
+# GPU ile hızlandırma için, bu dosyayı kurduktan sonra veya önce,
+# aşağıdaki komutun terminalde ayrıca çalıştırılması şiddetle tavsiye edilir:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# ===================================================================

@@ -1,7 +1,9 @@
-# Veri setinin bulunduğu ana klasörün yolu (proje ana klasörüne göre)
-path: ./dataset
-train: images/train  # train resimlerinin bulunduğu klasör
-val: images/valid    # validation resimlerinin bulunduğu klasör
+# Veri setinin bulunduğu ana klasörün yolu
+path: ./data/processed
+
+# Eğitim ve doğrulama resimlerinin yolları (yukarıdaki path'e göre)
+train: images/train
+val: images/valid
 
 # Sınıf sayısı ve isimleri
 nc: 1

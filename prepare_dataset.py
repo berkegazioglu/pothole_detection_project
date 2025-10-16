@@ -1,234 +1,149 @@
 # =============================================================================
-# Gerekli Kütüphanelerin Projeye Dahil Edilmesi (import)
+# Gerekli Kütüphaneler
 # =============================================================================
-# Bu bölümde, script'in çalışması için gereken standart Python araçlarını (kütüphaneleri) çağırıyoruz.
-
-import os  # İşletim sistemiyle ilgili temel fonksiyonları kullanmamızı sağlar.
-           # Örneğin: klasör oluşturma (makedirs), dosya yollarını birleştirme (path.join)
-
-import random  # Rastgele sayılar ve işlemler üretmek için kullanılır.
-               # Veri setini karıştırarak modelin öğrenme kalitesini artırmak için kullanacağız.
-
-import shutil  # Gelişmiş dosya işlemleri (kopyalama, taşıma, silme) için kullanılır.
-               # 'shutil.copy()' ile dosyaları bir yerden bir yere kopyalayacağız.
-
-import xml.etree.ElementTree as ET  # XML (Genişletilebilir İşaretleme Dili) dosyalarını okumak ve
-                                    # içindeki verileri ayrıştırmak (parse) için güçlü bir araçtır.
-                                    # Bizim .xml etiketlerimizi okumak için bu kütüphaneyi kullanacağız.
+import os
+import random
+import shutil
+import xml.etree.ElementTree as ET
 
 # =============================================================================
 # KULLANICI AYARLARI (Konfigürasyon)
 # =============================================================================
-# Bu bölüm, kodun ana mantığına dokunmadan projenin temel ayarlarını
-# kolayca değiştirebilmeniz için tasarlanmıştır.
-
-# --- AYARLARI DEĞİŞTİREBİLİRSİNİZ ---
+# Bu bölüm, ham bir XML veri setini YOLO formatına dönüştürmek için
+# script'in davranışını kontrol eder. Yeni bir ham veri seti işleyeceğiniz
+# zaman bu ayarları düzenlemeniz gerekebilir.
 
 # Ham resim dosyalarının bulunduğu kaynak klasörün yolu.
-# "./images", bu script'in çalıştığı dizindeki "images" adlı klasörü ifade eder.
-SOURCE_IMAGES_DIR = "./images"
+SOURCE_IMAGES_DIR = "data/raw/images"
 
 # Ham XML etiket dosyalarının bulunduğu kaynak klasörün yolu.
-SOURCE_ANNOTATIONS_DIR = "./annotations"
+SOURCE_ANNOTATIONS_DIR = "data/raw/annotations"
 
-# İşlenmiş ve eğitime hazır hale getirilmiş verilerin kaydedileceği hedef klasör.
-DEST_DIR = "./dataset/"
+# İşlenmiş ve eğitime hazır verilerin kaydedileceği hedef klasör.
+DEST_DIR = "data/processed"
 
-# Veri setinin yüzde kaçının doğrulama (validation) için ayrılacağını belirler.
-# 0.2, verilerin %20'sinin modelin performansını test etmek için kullanılacağı,
-# geri kalan %80'inin ise modeli eğitmek için kullanılacağı anlamına gelir.
+# Veri setinin yüzde kaçının doğrulama (validation) için ayrılacağı.
 VALID_SPLIT = 0.2
 
-# Tespit edilmesini istediğimiz nesnelerin sınıflarını içeren bir liste.
-# Bizim projemizde sadece "pothole" olduğu için tek elemanlı bir liste.
-# Eğer birden fazla nesne olsaydı, ['pothole', 'crack', 'manhole'] şeklinde olurdu.
+# Tespit edilecek nesnelerin sınıfları.
 CLASSES = ["pothole"]
-
-# --- AYARLARI DEĞİŞTİRMEYİ BİTİRİN ---
 
 
 # =============================================================================
 # YARDIMCI FONKSİYONLAR
 # =============================================================================
 
-def create_dirs():
+def create_dirs(destination_dir):
     """
-    YOLO'nun beklediği standart klasör yapısını oluşturur.
+    YOLO'nun beklediği standart klasör yapısını (images/train, labels/valid vb.) oluşturur.
     Eğer klasörler zaten mevcutsa, hata vermeden devam eder.
     """
-    print("Gerekli hedef klasörler oluşturuluyor veya kontrol ediliyor...")
-    # Oluşturulacak tüm alt klasör yollarını bir liste içinde tanımlıyoruz.
+    print(f"'{destination_dir}' içinde hedef klasör yapısı oluşturuluyor veya kontrol ediliyor...")
     for sub_dir in ["images/train", "images/valid", "labels/train", "labels/valid"]:
-        # os.makedirs, iç içe klasörleri tek seferde oluşturabilir.
-        # exist_ok=True parametresi, script her çalıştığında "klasör zaten var" hatası
-        # almamızı engeller, bu da script'i tekrar tekrar çalıştırmayı güvenli hale getirir.
-        os.makedirs(os.path.join(DEST_DIR, sub_dir), exist_ok=True)
+        os.makedirs(os.path.join(destination_dir, sub_dir), exist_ok=True)
 
 
-def convert_xml_to_yolo(xml_file_path, image_width, image_height):
+def convert_xml_to_yolo(xml_path, img_w, img_h):
     """
     Tek bir XML dosyasındaki koordinatları okur ve YOLO'nun .txt formatına dönüştürür.
-
-    Args:
-        xml_file_path (str): Okunacak .xml dosyasının tam yolu.
-        image_width (int): Orijinal resmin piksel cinsinden genişliği.
-        image_height (int): Orijinal resmin piksel cinsinden yüksekliği.
-
-    Returns:
-        str: YOLO formatına dönüştürülmüş, yazılmaya hazır metin.
+    Koordinatları, resim boyutlarına göre 0 ile 1 arasında oranlar.
     """
-    # Verilen yoldaki XML dosyasını okur ve içeriğini bir ağaç yapısı olarak belleğe yükler.
-    tree = ET.parse(xml_file_path)
-    # XML dosyasının en dış etiketini (kökünü) alır.
-    root = tree.getroot()
-    # Dönüştürülen her nesne için bir satır tutacak olan boş bir liste oluştururuz.
-    yolo_lines = []
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+        yolo_lines = []
+        for obj in root.findall('object'):
+            class_name = obj.find('name').text
+            if class_name not in CLASSES:
+                continue
+            class_id = CLASSES.index(class_name)
+            bndbox = obj.find('bndbox')
+            xmin, ymin, xmax, ymax = [float(bndbox.find(tag).text) for tag in ['xmin', 'ymin', 'xmax', 'ymax']]
 
-    # XML dosyasındaki her bir '<object>' etiketini bulur. Her etiket bir çukuru temsil eder.
-    for obj in root.findall('object'):
-        # Nesnenin adını ('pothole') alır.
-        class_name = obj.find('name').text
-        # Eğer bu nesnenin adı bizim aradığımız sınıflar listesinde değilse, bu nesneyi atlarız.
-        if class_name not in CLASSES:
-            continue
+            x_center = (xmin + xmax) / 2.0 / img_w
+            y_center = (ymin + ymax) / 2.0 / img_h
+            width = (xmax - xmin) / img_w
+            height = (ymax - ymin) / img_h
 
-        # Sınıfın, CLASSES listesindeki sıra numarasını (indeksini) alırız. 'pothole' için bu 0 olacaktır.
-        # YOLO formatının ilk değeri bu class_id'dir.
-        class_id = CLASSES.index(class_name)
-
-        # '<bndbox>' etiketini buluruz. Bu, sınırlayıcı kutunun (bounding box) koordinatlarını içerir.
-        bndbox = obj.find('bndbox')
-        # Piksel cinsinden koordinatları okur ve matematiksel işlem yapabilmek için ondalıklı sayıya (float) çeviririz.
-        xmin = float(bndbox.find('xmin').text)  # Kutunun sol üst köşesinin x koordinatı
-        ymin = float(bndbox.find('ymin').text)  # Kutunun sol üst köşesinin y koordinatı
-        xmax = float(bndbox.find('xmax').text)  # Kutunun sağ alt köşesinin x koordinatı
-        ymax = float(bndbox.find('ymax').text)  # Kutunun sağ alt köşesinin y koordinatı
-
-        # --- YOLO FORMATINA DÖNÜŞTÜRME MATEMATİĞİ ---
-        # YOLO, mutlak piksel koordinatları yerine, resmin genişliğine ve yüksekliğine
-        # oranlanmış, 0 ile 1 arasında değerler kullanır. Bu, modelin farklı boyutlardaki
-        # resimlerle daha kolay çalışmasını sağlar.
-
-        # 1. Kutunun merkez noktasının x koordinatını bul ve resmin toplam genişliğine bölerek oranla.
-        x_center = (xmin + xmax) / 2.0 / image_width
-        # 2. Kutunun merkez noktasının y koordinatını bul ve resmin toplam yüksekliğine bölerek oranla.
-        y_center = (ymin + ymax) / 2.0 / image_height
-        # 3. Kutunun genişliğini bul ve resmin toplam genişliğine bölerek oranla.
-        width = (xmax - xmin) / image_width
-        # 4. Kutunun yüksekliğini bul ve resmin toplam yüksekliğine bölerek oranla.
-        height = (ymax - ymin) / image_height
-
-        # Elde edilen 5 değeri (sınıf_id, x_merkez, y_merkez, genişlik, yükseklik)
-        # standart YOLO formatında bir string (metin) haline getiririz.
-        yolo_lines.append(f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}")
-
-    # Tüm nesneler işlendikten sonra, her bir satırı alt alta birleştirip tek bir metin olarak döndürürüz.
-    return "\n".join(yolo_lines)
+            yolo_lines.append(f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}")
+        return "\n".join(yolo_lines)
+    except Exception as e:
+        print(f"HATA: XML dosyası '{xml_path}' okunurken sorun oluştu: {e}")
+        return None
 
 
 # =============================================================================
 # ANA İŞLEM FONKSİYONU
 # =============================================================================
-# Bu fonksiyon, tüm veri hazırlama sürecini baştan sona yönetir.
 
 def process_dataset():
-    """
-    Tüm veri setini işler:
-    1. Hedef klasörleri oluşturur.
-    2. Veri bütünlüğünü kontrol eder (resmi olmayan etiketleri ayıklar).
-    3. Verileri train ve valid olarak ayırır.
-    4. Etiketleri XML'den YOLO formatına dönüştürür.
-    5. Dosyaları son hedef klasörlerine kopyalar.
-    """
-    # Adım 1: YOLO'nun ihtiyaç duyduğu klasör yapısını oluştur.
-    create_dirs()
+    """Tüm veri işleme sürecini baştan sona yönetir."""
+    create_dirs(DEST_DIR)
 
-    # Adım 2: Kaynak `annotations` klasöründeki tüm .xml uzantılı dosyaları bul ve bir listeye ata.
+    if not os.path.isdir(SOURCE_ANNOTATIONS_DIR):
+        print(f"HATA: Kaynak etiket klasörü bulunamadı: '{SOURCE_ANNOTATIONS_DIR}'")
+        return
+
     xml_files = [f for f in os.listdir(SOURCE_ANNOTATIONS_DIR) if f.endswith('.xml')]
 
-    # Adım 3: Veri Bütünlüğünü Kontrol Et. Bazen bir etiket dosyası olur ama karşılık gelen
-    # resim dosyası eksik olabilir. Bu "yetim" etiketleri ayıklamamız gerekir.
-    valid_xml_files = []
-    for xml_name in xml_files:
-        base_name = os.path.splitext(xml_name)[0]  # Dosya adından uzantıyı kaldır ('pothole1.xml' -> 'pothole1')
-        img_name_png = base_name + ".png"          # Resim dosyasının adını oluştur.
-        src_img_path = os.path.join(SOURCE_IMAGES_DIR, img_name_png)
+    valid_files = []
+    for xml_file in xml_files:
+        base_name = os.path.splitext(xml_file)[0]
+        # Hem .png hem de .jpg uzantılı resimleri kontrol eder.
+        for ext in ['.png', '.jpg', '.jpeg']:
+            img_path = os.path.join(SOURCE_IMAGES_DIR, base_name + ext)
+            if os.path.exists(img_path):
+                valid_files.append((xml_file, ext))
+                break
+        else:  # Döngü 'break' olmadan biterse, yani resim bulunamazsa...
+            print(f"UYARI: '{xml_file}' etiketine ait bir resim bulunamadı. Bu etiket atlanacak.")
 
-        # Eğer bu isimde bir resim dosyası gerçekten kaynak klasörde varsa...
-        if os.path.exists(src_img_path):
-            valid_xml_files.append(xml_name)  # ...etiketi geçerli dosyalar listesine ekle.
-        else:
-            # ...yoksa, kullanıcıyı uyar ve bu sorunlu etiketi atla.
-            print(f"UYARI: {xml_name} etiketine ait {img_name_png} resmi bulunamadı. Bu etiket atlanacak.")
+    random.shuffle(valid_files)
+    split_idx = int(len(valid_files) * (1 - VALID_SPLIT))
+    train_set = valid_files[:split_idx]
+    valid_set = valid_files[split_idx:]
 
-    # Adım 4: Veri Setini Karıştır ve Ayır.
-    # Modelin verileri belirli bir sırada görerek yanlış örüntüler öğrenmesini engellemek için
-    # listeyi rastgele karıştırmak çok önemlidir.
-    random.shuffle(valid_xml_files)
+    print(
+        f"\n{len(valid_files)} geçerli veri bulundu. {len(train_set)} train, {len(valid_set)} validation olarak ayrılıyor.")
 
-    # Listeyi %80 train, %20 valid olacak şekilde ayıracak olan indeksi hesapla.
-    split_index = int(len(valid_xml_files) * (1 - VALID_SPLIT))
-    train_files = valid_xml_files[:split_index]  # Listenin başından ayırma noktasına kadar olan kısım.
-    valid_files = valid_xml_files[split_index:]  # Ayırma noktasından sonuna kadar olan kısım.
-
-    # Kullanıcıya sürecin durumu hakkında bilgi ver.
-    print(f"\nToplam {len(xml_files)} etiket bulundu, ancak sadece {len(valid_xml_files)} tanesinin resmi var.")
-    print(f"{len(train_files)} tanesi train, {len(valid_files)} tanesi validation için ayrılıyor.")
-
-    # Adım 5: Dosyaları İşle ve Kopyala. Bu iç içe fonksiyon, hem train hem de valid setleri için
-    # aynı işlemleri yapacağımızdan kod tekrarını önlemek için kullanılır (DRY - Don't Repeat Yourself).
-    def process_files(file_list, set_type):
-        for xml_name in file_list:
+    def copy_and_convert(file_set, set_type):
+        for xml_name, img_ext in file_set:
             base_name = os.path.splitext(xml_name)[0]
-            img_name_png = base_name + ".png"
-            txt_name = base_name + ".txt"  # Oluşturulacak yeni .txt etiket dosyasının adı
-
-            # Gerekli tüm kaynak ve hedef yollarını oluştur.
             src_xml_path = os.path.join(SOURCE_ANNOTATIONS_DIR, xml_name)
-            src_img_path = os.path.join(SOURCE_IMAGES_DIR, img_name_png)
-            dest_label_path = os.path.join(DEST_DIR, f"labels/{set_type}", txt_name)
-            dest_img_path = os.path.join(DEST_DIR, f"images/{set_type}", img_name_png)
+            src_img_path = os.path.join(SOURCE_IMAGES_DIR, base_name + img_ext)
+
+            dest_label_path = os.path.join(DEST_DIR, f"labels/{set_type}", base_name + ".txt")
+            dest_img_path = os.path.join(DEST_DIR, f"images/{set_type}", base_name + img_ext)
 
             try:
-                # XML dosyasından resmin genişlik ve yükseklik bilgilerini oku.
-                # Bu bilgi, YOLO formatına doğru dönüşüm yapabilmemiz için kritik öneme sahiptir.
                 tree = ET.parse(src_xml_path)
-                root = tree.getroot()
-                size = root.find('size')
-                img_width = int(size.find('width').text)
-                img_height = int(size.find('height').text)
+                size = tree.getroot().find('size')
+                img_w, img_h = int(size.find('width').text), int(size.find('height').text)
+
+                yolo_data = convert_xml_to_yolo(src_xml_path, img_w, img_h)
+                if yolo_data is not None:
+                    with open(dest_label_path, 'w') as f:
+                        f.write(yolo_data)
+                    shutil.copy(src_img_path, dest_img_path)
             except Exception as e:
-                # Eğer XML okuma sırasında bir hata olursa (dosya bozuksa vb.),
-                # hatayı ekrana yazdır, bu dosyayı atla ve bir sonraki ile devam et.
-                print(f"HATA: {xml_name} dosyası okunurken hata oluştu: {e}")
-                continue
+                print(f"HATA: '{xml_name}' işlenirken beklenmedik bir hata oluştu: {e}")
 
-            # Ana dönüşüm fonksiyonunu çağırarak YOLO formatındaki metni oluştur.
-            yolo_data = convert_xml_to_yolo(src_xml_path, img_width, img_height)
-            # Oluşturulan veriyi, `with open` bloğu ile güvenli bir şekilde yeni .txt dosyasına yaz.
-            with open(dest_label_path, 'w') as f:
-                f.write(yolo_data)
-
-            # Orijinal resim dosyasını (.png) doğru hedef klasöre kopyala.
-            shutil.copy(src_img_path, dest_img_path)
-
-    # Adım 6: `process_files` fonksiyonunu hem train hem de valid listeleri için çalıştır.
     print("\nTrain verileri işleniyor...")
-    process_files(train_files, "train")
-
-    print("\nValidation verileri işleniyor...")
-    process_files(valid_files, "valid")
-
-    print("\nİşlem tamamlandı! 'dataset' klasörü artık eğitime hazır.")
+    copy_and_convert(train_set, "train")
+    print("Validation verileri işleniyor...")
+    copy_and_convert(valid_set, "valid")
+    print("\nİşlem tamamlandı! Verileriniz artık 'data/processed' klasöründe eğitime hazır.")
 
 
 # =============================================================================
 # SCRIPT'İN BAŞLANGIÇ NOKTASI
 # =============================================================================
-# Bu, Python'da standart bir yapıdır. Anlamı: "Eğer bu script dosyası
-# `python prepare_dataset.py` komutuyla doğrudan çalıştırıldıysa
-# (başka bir dosya tarafından kütüphane gibi 'import' edilmediyse),
-# o zaman aşağıdaki kodu çalıştır."
 if __name__ == '__main__':
-    # Ana işlem fonksiyonunu çağırarak tüm süreci başlat.
-    process_dataset()
+    # GÜVENLİK NOTU: Bu script, DEST_DIR içindeki mevcut dosyaların üzerine yazabilir.
+    # Çalıştırmak için aşağıdaki satırın başındaki '#' işaretini kaldırın ve
+    # terminalde `python prepare_dataset.py` komutunu çalıştırın.
+
+    # process_dataset()
+
+    print("Bu script, 'data/raw' klasöründeki ham XML verilerini 'data/processed' klasörüne işlemek içindir.")
+    print("Kullanmak için dosyanın en altındaki 'process_dataset()' satırının yorumunu kaldırmanız gerekir.")

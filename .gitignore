@@ -1,0 +1,38 @@
+# Sanal Ortam Klasörü
+venv/
+.venv/
+
+# Python Cache Dosyaları
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE ve Editör Ayar Klasörleri
+.idea/
+.vscode/
+
+# Tüm Çıktılar ve Sonuçlar
+# Bu klasörler her çalıştırmada yeniden oluşur ve çok büyük olabilirler.
+outputs/
+training_results_*
+pothole_yolov8s*
+runs/
+
+# Veri Setleri
+# Veri setleri genellikle çok büyüktür ve Git'e gönderilmez.
+# README dosyasında nereden indirileceği belirtilir.
+data/
+dataset/
+dataset_combined/
+images/
+annotations/
+new_dataset_from_roboflow/
+
+# İndirilen Model Dosyaları ve Cache
+*.pt
+*.cache
+
+# İşletim Sistemi Dosyaları
+.DS_Store
+Thumbs.db
